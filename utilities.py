@@ -1,9 +1,10 @@
 import string
+import uuid
 
 ALPHABET = string.digits + string.ascii_letters
 base = len(ALPHABET)
 
-def base62encode(num: int):
+def base62encode(num: int) -> str:
     """ Base 62 Encode a number."""
     if num == 0:
         return ALPHABET[0]
@@ -14,6 +15,15 @@ def base62encode(num: int):
             res.append(ALPHABET[remainder])
         res.reverse()
         return ''.join(res)
+
+def generate_mapKey() -> str:
+    """ Generate a unique mapKey to make a shortened url."""
+    uid = uuid.uuid4().int
+    shortened_uid = int(str(uid)[:8])
+    return base62encode(shortened_uid)
+    
+
+
 
 
 

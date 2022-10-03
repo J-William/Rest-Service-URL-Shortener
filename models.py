@@ -1,6 +1,6 @@
+from dataclasses import dataclass
 from pydantic import BaseModel, HttpUrl
-import uuid
-from utilities import base62encode
+from utilities import generate_mapKey
 
 
 class MappingRequest(BaseModel):
@@ -10,13 +10,7 @@ class MappingRequest(BaseModel):
 class Mapping():
     def __init__(self, ourl: HttpUrl):
         self.original_url = ourl
-        self.uid = uuid.uuid4().int
-        self.mapKey = self.generate_mapKey(self.uid)
+        self.mapKey = generate_mapKey()
 
-    @staticmethod
-    def generate_mapKey(num: int):
-        """Truncate the uid and base62 encode to generate a short alias"""
-        num = int(str(num)[:8])
-        return base62encode(num)
 
 
