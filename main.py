@@ -34,6 +34,7 @@ async def map(mapreq: MappingRequest):
         # If there is a collision generate new mapkeys until there isn't
         while cache.search(mapkey=map.mapkey) or db.search_mapping_mapkey(mapkey=map.mapkey):
             map = Mapping(url=mapreq.original_url)
+
         
         try:
             # Commit the mapping
