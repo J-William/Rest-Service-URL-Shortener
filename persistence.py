@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pydantic import HttpUrl
 from models import Mapping
+from datetime import datetime
 import uuid
 import psycopg2
 
@@ -11,10 +12,11 @@ class Connection:
     used : bool
 
 
-class ConnectionManager():
-    def __new__(cls, db_config:dict):
+class DatabaseConnectionManager():
+    def __new__(cls, db_config: dict):
+        """ Return a reference to the singleton class instance."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(ConnectionManager, cls).__new__(cls)
+            cls.instance = super(DatabaseConnectionManager, cls).__new__(cls)
         return cls.instance
 
     def __init__(self, db_config: dict):
@@ -82,14 +84,14 @@ class ConnectionManager():
 
 class DatabaseManager():
     """ Db interface """
-    def __init__(self, dbcm: ConnectionManager):
-        self.dbcm = dbcm
+    def __init__(self, cm: DatabaseConnectionManager):
+        self.cm = cm
         # Reference to the Connection object
-        self.connection = dbcm.acquire()
+        self.connection = self.cm.acquire()
 
 
     def teardown(self):
-        self.dbcm.release(self.connection)
+        self.cm.release(self.connection)
         
     def search_mapping_url(self, original_url: HttpUrl) -> Mapping|None:
         cursor = self.connection.driver.cursor()
@@ -103,14 +105,14 @@ class DatabaseManager():
         cursor.close()
         return result
 
-    def search_mapping_mapkey(self, mapKey: str) -> Mapping|None:
+    def search_mapping_mapkey(self, mapkey: str) -> Mapping|None:
         cursor = self.connection.driver.cursor()
         cursor.execute(
             """
                 SELECT original_url, mapkey FROM url_shortener.mapping
                 WHERE mapkey = %s;
             """,
-            (mapKey,)
+            (mapkey,)
         )
         result = cursor.fetchone()
         cursor.close()
@@ -125,9 +127,46 @@ class DatabaseManager():
                 INSERT INTO url_shortener.mapping (original_url, mapkey)
                 VALUES (%s, %s);
             """,
-            (mapping.original_url, mapping.mapKey)
+            (mapping.original_url, mapping.mapkey)
         )
         cursor.close()
         self.connection.commit()
+
+
+
+class CacheManager:
+    def __new__(cls, cache_size: int):
+        """ Return a reference to the singleton class instance."""
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(CacheManager, cls).__new__(cls)
+        return cls.instance
+
+    def __init__(self, cache_size: int):
+        self.cache = dict()
+        self.size = cache_size
+    
+    @dataclass(frozen=True)
+    class Entry:
+        stamp : datetime
+        mapping : Mapping
+
+
+    def add(self, map: Mapping):
+        if len(self.cache) < self.size:
+            # If the cache isn't full add this entry
+            self.cache[map.mapkey] = self.Entry(stamp=datetime.now(), mapping=map)
+        else:
+            # Replace the oldest entry in the cache
+            minkey = list(self.cache.keys())[0]
+
+            for key, value in self.cache.items():
+                if value.stamp < self.cache[minkey].stamp:
+                    minkey = key
+            
+            self.cache[minkey] = self.Entry(stamp=datetime.now(), mapping=map)
+            
+
+    def search(self, mapkey: str) -> Mapping|None:
+        return self.cache.get(mapkey)
 
 
