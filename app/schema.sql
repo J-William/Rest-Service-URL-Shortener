@@ -1,6 +1,6 @@
 create schema url_shortener;
 
 create table url_shortener.mapping(
-	url varchar,
-	mapkey varchar
+	mapkey varchar PRIMARY KEY,
+	url varchar UNIQUE	
 );

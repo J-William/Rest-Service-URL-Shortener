@@ -1,12 +1,13 @@
-from dataclasses import dataclass
+from typing import Any
 from pydantic import HttpUrl
-from models import Mapping
+from app.models import Mapping
 from datetime import datetime
 import psycopg2 # type: ignore
 
 
 class MappingPersistenceManager():
-    """ Db interface """
+    """ Database access object for managing persistence of mappings"""
+    
     def __init__(self, db_config: dict):
         self.config = db_config
 
@@ -17,7 +18,7 @@ class MappingPersistenceManager():
                 port = self.config['port'],
                 host = self.config['host']
             )
-        
+        # Autocommit DML 
         self.connection.set_session(autocommit=True)
 
     def __del__(self):
@@ -60,7 +61,7 @@ class MappingPersistenceManager():
             return None
         
 
-    def commit_mapping(self, mapping: Mapping):
+    def commit_mapping(self, mapping: Mapping) -> None:
         """ Commit a mapping to the database."""
         cursor = self.connection.cursor()
         cursor.execute(
@@ -76,24 +77,24 @@ class MappingPersistenceManager():
 
 
 class CacheManager:
-    def __new__(cls, cache_size: int):
+    def __new__(cls, cache_size: int) -> Any:
         """ Return a reference to the singleton class instance."""
         if not hasattr(cls, 'instance'):
             cls.instance = super(CacheManager, cls).__new__(cls)
         return cls.instance
 
-    def __init__(self, cache_size: int):
+    def __init__(self, cache_size: int) -> None:
         # Dict of Entry objects keyed by mapkey
         self.cache: dict[str, CacheManager.Entry] = dict()
         self.size = cache_size
     
-    @dataclass(frozen=True)
     class Entry:
-        stamp : datetime
-        mapping : Mapping    
+        def __init__(self, stamp: datetime, mapping: Mapping) -> None:
+            self.stamp = stamp
+            self.mapping = mapping
 
 
-    def add(self, map: Mapping):
+    def add(self, map: Mapping) -> None:
         if len(self.cache) < self.size:
             # If the cache isn't full add this entry
             self.cache[map.mapkey] = self.Entry(stamp=datetime.now(), mapping=map)
@@ -104,13 +105,15 @@ class CacheManager:
             for key, value in self.cache.items():
                 if value.stamp < self.cache[minkey].stamp:
                     minkey = key
-            
-            self.cache[minkey] = self.Entry(stamp=datetime.now(), mapping=map)
+            del self.cache[minkey]
+            self.cache[map.mapkey] = self.Entry(stamp=datetime.now(), mapping=map)
             
 
     def search_mapkey(self, mapkey: str) -> Mapping|None:
         entry = self.cache.get(mapkey)
         if entry:
+            # Update the last hit timestamp and return mapping
+            self.cache[mapkey].stamp = datetime.now()
             return Mapping(url=entry.mapping.url, mapkey=entry.mapping.mapkey)
         else:
             return None
@@ -119,6 +122,8 @@ class CacheManager:
     def search_url(self, url: str) -> Mapping|None:
         for entry in self.cache.values():
             if entry.mapping.url == url:
+                # Update the last hit timestamp and return mapping
+                self.cache[entry.mapping.mapkey].stamp = datetime.now()
                 return Mapping(url=entry.mapping.url, mapkey=entry.mapping.mapkey)
         return None
 

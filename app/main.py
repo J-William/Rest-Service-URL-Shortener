@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.responses import RedirectResponse
 from models import MappingRequest, Mapping
@@ -8,7 +9,7 @@ import json
 
 app = FastAPI()
 
-with open('config.json') as f:
+with open('config/config.json') as f:
     config = json.loads(f.read())
 
 # DAO convenience constructor
@@ -18,7 +19,7 @@ cache = CacheManager(cache_size=config['cache_size'])
 
 
 @app.post('/api/v1/data/shorten', status_code=status.HTTP_201_CREATED)
-async def map(mapreq: MappingRequest, response: Response):
+async def map(mapreq: MappingRequest, response: Response) -> Any:
     """Request a shortened url mapping"""
     db = get_db()
 
@@ -49,7 +50,7 @@ async def map(mapreq: MappingRequest, response: Response):
     
 
 @app.get('/api/v1/{mapkey}')
-async def getRedirect(mapkey):
+async def getRedirect(mapkey: str) -> Any:
     """Redirect to a mapped url"""
     map = cache.search_mapkey(mapkey)
 
@@ -61,8 +62,8 @@ async def getRedirect(mapkey):
     if not map:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found")
     else:
-        # Client network error during testing redirects probably CORS issue
+        # Client network error during testing redirects; probably CORS issue
         # return RedirectResponse(map.url)
-        return {"message": f"you were redirected to {map.url}"}
+        return {"message": f"You were redirected to {map.url}"}
 
 

@@ -1,0 +1,10 @@
+{
+    "dbname": "url_shortener_app", 
+    "user": "url_shortener_app", 
+    "password": "password123", 
+    "port": "5432", 
+    "host": "localhost",
+    "pool_min_size": 1,
+    "pool_max_size": 4,
+    "cache_size": 10
+}
