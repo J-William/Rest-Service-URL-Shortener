@@ -17,6 +17,7 @@ def base62encode(num: int) -> str:
         res.reverse()
         return ''.join(res)
 
+
 def generate_mapkey() -> str:
     """ Generate a unique shortened mapkey for creating the shortened URL."""
     uid = uuid.uuid4().int

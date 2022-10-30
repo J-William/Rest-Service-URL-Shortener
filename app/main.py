@@ -1,9 +1,10 @@
 from typing import Any
 from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.responses import RedirectResponse
-from models import MappingRequest, Mapping
-from persistence import MappingPersistenceManager, CacheManager
-from utilities import generate_mapkey
+from app.database import DatabaseConnectionManager
+from app.models import MappingRequest, Mapping
+from app.persistence import MappingPersistenceManager, CacheManager
+from app.utilities import generate_mapkey
 import json
 
 
@@ -12,9 +13,10 @@ app = FastAPI()
 with open('config/config.json') as f:
     config = json.loads(f.read())
 
-# DAO convenience constructor
-get_db = lambda : MappingPersistenceManager(db_config=config)
 
+# Persistence Setup
+dbcm = DatabaseConnectionManager(db_config=config)
+get_db = lambda : MappingPersistenceManager(dbcm=dbcm)
 cache = CacheManager(cache_size=config['cache_size'])
 
 
@@ -45,7 +47,7 @@ async def map(mapreq: MappingRequest, response: Response) -> Any:
         
         db.teardown()
         
-        return "Success"
+        return {"message": "Success", "mapkey": mapkey}
     
     
 

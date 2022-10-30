@@ -1,34 +1,22 @@
 from typing import Any
 from pydantic import HttpUrl
+from app.database import DatabaseConnectionManager
 from app.models import Mapping
 from datetime import datetime
-import psycopg2 # type: ignore
 
 
 class MappingPersistenceManager():
     """ Database access object for managing persistence of mappings"""
     
-    def __init__(self, db_config: dict):
-        self.config = db_config
-
-        self.connection = psycopg2.connect(
-                dbname = self.config['dbname'],
-                user = self.config['user'],
-                password = self.config['password'],
-                port = self.config['port'],
-                host = self.config['host']
-            )
-        # Autocommit DML 
-        self.connection.set_session(autocommit=True)
-
-    def __del__(self):
-        self.teardown()
+    def __init__(self, dbcm: DatabaseConnectionManager):
+        self.dbcm = dbcm
+        self.connection = self.dbcm.acquire()
 
     def teardown(self):
-        self.connection.close()
+        self.dbcm.release(self.connection)
         
     def search_url(self, url: HttpUrl) -> Mapping|None:
-        cursor = self.connection.cursor()
+        cursor = self.connection.driver.cursor()
         cursor.execute(""" 
                 SELECT url, mapkey FROM url_shortener.mapping
                 WHERE url = %s;
@@ -44,7 +32,7 @@ class MappingPersistenceManager():
             return None
 
     def search_mapkey(self, mapkey: str) -> Mapping|None:
-        cursor = self.connection.cursor()
+        cursor = self.connection.driver.cursor()
         cursor.execute(
             """
                 SELECT url, mapkey FROM url_shortener.mapping
@@ -63,7 +51,7 @@ class MappingPersistenceManager():
 
     def commit_mapping(self, mapping: Mapping) -> None:
         """ Commit a mapping to the database."""
-        cursor = self.connection.cursor()
+        cursor = self.connection.driver.cursor()
         cursor.execute(
             """
                 INSERT INTO url_shortener.mapping (url, mapkey)
@@ -71,7 +59,6 @@ class MappingPersistenceManager():
             """,
             (mapping.url, mapping.mapkey)
         )
-        self.connection.commit()
         cursor.close()
 
 
