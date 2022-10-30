@@ -1,63 +1,68 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, HTTPException, status
+from fastapi.responses import RedirectResponse
 from models import MappingRequest, Mapping
-from persistence import DatabaseConnectionManager, DatabaseManager, CacheManager
+from persistence import MappingPersistenceManager, CacheManager
+from utilities import generate_mapkey
 import json
+
 
 app = FastAPI()
 
-# TODO configuration
 with open('config.json') as f:
     config = json.loads(f.read())
 
-# Singleton connection manager
-dbcm = DatabaseConnectionManager(db_config=config)
-
-# DatbaseManager convenience constructor
-get_db = lambda : DatabaseManager(cm=dbcm)
+# DAO convenience constructor
+get_db = lambda : MappingPersistenceManager(db_config=config)
 
 cache = CacheManager(cache_size=config['cache_size'])
 
 
-@app.post('/p')
-async def map(mapreq: MappingRequest):
-    # Request a shortened url
+@app.post('/api/v1/data/shorten', status_code=status.HTTP_201_CREATED)
+async def map(mapreq: MappingRequest, response: Response):
+    """Request a shortened url mapping"""
     db = get_db()
 
-    map = db.search_mapping_url(mapreq.original_url)
+    map = cache.search_url(mapreq.url) or db.search_url(mapreq.url)
 
     if map:
         # Return failure resource already exists
-        return "Error, resource already exists"
+        response.status_code = status.HTTP_403_FORBIDDEN
+        db.teardown()
+        return "Error, mapping already exists"
     else:
-        map = Mapping(url=mapreq.original_url)
+        # Create a new mapping
+        mapkey = generate_mapkey()
 
         # If there is a collision generate new mapkeys until there isn't
-        while cache.search(mapkey=map.mapkey) or db.search_mapping_mapkey(mapkey=map.mapkey):
-            map = Mapping(url=mapreq.original_url)
+        while cache.search_mapkey(mapkey) or db.search_mapkey(mapkey):
+            mapkey = generate_mapkey()
 
+        map = Mapping(mapreq.url, mapkey)
+
+        # Commit the mapping
+        db.commit_mapping(map)
         
-        try:
-            # Commit the mapping
-            db.commit_mapping(mapping=map)
-        except:
-            return "Error, database transaction failure."
-        finally:
-            db.teardown()
+        db.teardown()
         
         return "Success"
     
+    
 
-@app.get('/g/{mapkey}')
+@app.get('/api/v1/{mapkey}')
 async def getRedirect(mapkey):
-    # Redirect to a mapped url
-    map = cache.search(mapkey=mapkey)
+    """Redirect to a mapped url"""
+    map = cache.search_mapkey(mapkey)
 
     if not map:
         db = get_db()
-        map = db.search_mapping_mapkey(mapkey=mapkey)
+        map = db.search_mapkey(mapkey)
         db.teardown()
 
     if not map:
-        return "Error, url not found."
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found")
     else:
-        return "Redirect to map.original_url"
+        # Client network error during testing redirects probably CORS issue
+        # return RedirectResponse(map.url)
+        return {"message": f"you were redirected to {map.url}"}
+
+
