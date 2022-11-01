@@ -20,8 +20,13 @@ get_db = lambda : MappingPersistenceManager(dbcm=dbcm)
 cache = CacheManager(cache_size=config['cache_size'])
 
 
+@app.get('/')
+async def gethome() -> Any:
+    return {"msg": "Url Shortener v1.0"}
+
+
 @app.post('/api/v1/data/shorten', status_code=status.HTTP_201_CREATED)
-async def map(mapreq: MappingRequest, response: Response) -> Any:
+async def shorten_url(mapreq: MappingRequest, response: Response) -> Any:
     """Request a shortened url mapping"""
     db = get_db()
 
@@ -52,7 +57,7 @@ async def map(mapreq: MappingRequest, response: Response) -> Any:
     
 
 @app.get('/api/v1/{mapkey}')
-async def getRedirect(mapkey: str) -> Any:
+async def get_redirect(mapkey: str) -> Any:
     """Redirect to a mapped url"""
     map = cache.search_mapkey(mapkey)
 
@@ -62,10 +67,8 @@ async def getRedirect(mapkey: str) -> Any:
         db.teardown()
 
     if not map:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="URL not found")
     else:
         # Client network error during testing redirects; probably CORS issue
-        # return RedirectResponse(map.url)
+        #return RedirectResponse(map.url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
         return {"message": f"You were redirected to {map.url}"}
-
-
