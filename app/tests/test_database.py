@@ -2,10 +2,10 @@ from app.database import DatabaseConnectionManager
 import json
 
 
-TEST_CONFIG_FILE = 'config/test_config.json'
+CONFIG_FILE = 'config/config.json'
 
-with open(TEST_CONFIG_FILE) as f:
-    TEST_CONFIG = json.loads(f.read())
+with open(CONFIG_FILE) as f:
+    CONFIG = json.loads(f.read())
 
 
 
@@ -14,7 +14,7 @@ class TestDatabase:
     @classmethod
     def setup_class(cls):
         global dbcm
-        dbcm = DatabaseConnectionManager(TEST_CONFIG)
+        dbcm = DatabaseConnectionManager(CONFIG)
 
     @classmethod
     def teardown_class(cls):
@@ -36,14 +36,14 @@ class TestDatabase:
         dbcm.release(conn)
 
     def test_pool_min(self):
-        assert len(dbcm.pool) == TEST_CONFIG['pool_min_size']
+        assert len(dbcm.pool) == CONFIG['pool_min_size']
     
     def test_pool_max(self):
         conns = list()
-        for i in range(TEST_CONFIG['pool_max_size']):
+        for i in range(CONFIG['pool_max_size']):
             conns.append(dbcm.acquire())
 
-        assert len(dbcm.pool) == TEST_CONFIG['pool_max_size']
+        assert len(dbcm.pool) == CONFIG['pool_max_size']
 
         for conn in conns:
             dbcm.release(conn)

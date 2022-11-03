@@ -22,12 +22,12 @@ cache = CacheManager(cache_size=config['cache_size'])
 
 
 @app.get('/')
-async def gethome() -> Any:
-    """ Test the service """
-    return {"msg": "Url Shortener v1.0"}
+async def service_status(response: Response) -> Any:
+    """ Test the service """   
+    return {"msg": "Url Shortener v1.0 Service Available"}
 
 
-@app.post('/api/v1/data/shorten', status_code=status.HTTP_201_CREATED)
+@app.post('/api/v1/shorten', status_code=status.HTTP_201_CREATED)
 async def shorten_url(mapreq: MappingRequest, response: Response) -> Any:
     """Request a shortened url mapping"""
     db = get_db()

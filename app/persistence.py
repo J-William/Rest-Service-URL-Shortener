@@ -1,7 +1,6 @@
 from typing import Any
 from pydantic import HttpUrl
 from app.database import DatabaseConnectionManager
-from fastapi import HTTPException, status
 from app.models import Mapping
 from datetime import datetime
 

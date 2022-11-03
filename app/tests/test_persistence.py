@@ -7,85 +7,87 @@ import random
 import json
 
 
-TEST_CONFIG_FILE = 'config/test_config.json'
-TEST_URL = 'http://www.test.com'
-TEST_MAPKEY = '000000'
+CONFIG_FILE = 'config/config.json'
 
-with open(TEST_CONFIG_FILE) as f:
-    TEST_CONFIG = json.loads(f.read())
+with open(CONFIG_FILE) as f:
+    CONFIG = json.loads(f.read())
 
 
 def generate_random_mapping():
     random_string = ''.join(random.choices(ALPHABET, k=8))
-    return Mapping('http://www.{random_string}.com', generate_mapkey())
+    return Mapping(f'http://www.{random_string}.com', generate_mapkey())
 
 
 class TestMappingPersistenceManager:
     @classmethod
     def setup_class(cls):
-        global dbcm, db
-        dbcm = DatabaseConnectionManager(TEST_CONFIG)
+        global dbcm, db, mapping
+        dbcm = DatabaseConnectionManager(CONFIG)
         db = MappingPersistenceManager(dbcm=dbcm)
+        mapping = generate_random_mapping()
 
     @classmethod
     def teardown_class(cls):
-        global dbcm, db
+        global dbcm, db, mapping
         db.teardown()
         dbcm.teardown()
-        del db, dbcm
+        del db, dbcm, mapping
 
     def test_initialization(self):
         assert db.connection.driver.closed == 0
         assert db.connection.driver.autocommit == True
         
+    def test_commit_mapping(self):
+        db.commit_mapping(mapping)
+        
+
     def test_url_search(self):
-        map = db.search_url(TEST_URL)
-        assert map.mapkey == TEST_MAPKEY
+        map = db.search_url(mapping.url)
+        assert map.mapkey == mapping.mapkey
 
     def test_mapkey_search(self):
-        map = db.search_mapkey(TEST_MAPKEY)
-        assert map.url == TEST_URL
+        map = db.search_mapkey(mapping.mapkey)
+        assert map.url == mapping.url
 
-    def test_commit_mapping(self):
-        map = Mapping(TEST_URL, TEST_MAPKEY)
+
         
 
 class TestCacheManager:
     @classmethod
     def setup_class(cls):
-        global cm
-        cm = CacheManager(TEST_CONFIG['cache_size'])
+        global cm, mapping
+        cm = CacheManager(CONFIG['cache_size'])
+        mapping = generate_random_mapping()
     
     @classmethod
     def teardown_class(cls):
-        global cm
-        del cm
+        global cm, mapping
+        del cm, mapping
 
     def test_basic_add(self):
-        map = Mapping(TEST_URL, TEST_MAPKEY)
-        cm.add(map)
+        cm.add(mapping)
         mappings = list()
         for entry in cm.cache.values():
             mappings.append(entry.mapping)
-        assert map in mappings
+        assert mapping in mappings
 
     def test_search_mapkey(self, cache):
-        map = cm.search_mapkey(TEST_MAPKEY)
-        assert map.url == TEST_URL
+        map = cm.search_mapkey(mapping.mapkey)
+        assert map.url == mapping.url
 
     def test_search_url(self):
-        map = cm.search_url(TEST_URL)
-        assert map.mapkey == TEST_MAPKEY
+        map = cm.search_url(mapping.url)
+        assert map.mapkey == mapping.mapkey
 
     def test_size_limit(self):
-        for _ in range(TEST_CONFIG['cache_size'] + 5):
+        for _ in range(CONFIG['cache_size'] + 5):
             cm.add(generate_random_mapping())
 
-        assert len(cm.cache) <= TEST_CONFIG['cache_size']
+        assert len(cm.cache) <= CONFIG['cache_size']
 
 
     def test_lru_logic(self):
-        for _ in range(TEST_CONFIG['cache_size']):
+        for _ in range(CONFIG['cache_size']):
             cm.add(generate_random_mapping())
             time.sleep(0.01)
 

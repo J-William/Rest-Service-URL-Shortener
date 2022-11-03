@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.utilities import ALPHABET
 import random
-
+import os
 
 
 client = TestClient(app)
@@ -16,16 +16,15 @@ def generate_random_url(length: int) -> str:
 test_url = generate_random_url(10)
 test_mapkey = str()
 
-
-def test_read_main():
+def test_read_status():
     response = client.get("/")
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"msg": "Url Shortener v1.0"}
+    assert response.json() == {"msg": "Url Shortener v1.0 Service Available"}
 
 
 def test_shorten_url():
     response = client.post(
-        "/api/v1/data/shorten",
+        "/api/v1/shorten",
         headers={ "accept": "application/json", "Content-Type": "application/json" },
         json= { "url": test_url }
         )
