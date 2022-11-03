@@ -35,4 +35,19 @@ class TestDatabase:
         cursor.close()
         dbcm.release(conn)
 
+    def test_pool_min(self):
+        assert len(dbcm.pool) == TEST_CONFIG['pool_min_size']
+    
+    def test_pool_max(self):
+        conns = list()
+        for i in range(TEST_CONFIG['pool_max_size']):
+            conns.append(dbcm.acquire())
+
+        assert len(dbcm.pool) == TEST_CONFIG['pool_max_size']
+
+        for conn in conns:
+            dbcm.release(conn)
+
+    
+    
 

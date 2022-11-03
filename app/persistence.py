@@ -1,6 +1,7 @@
 from typing import Any
 from pydantic import HttpUrl
 from app.database import DatabaseConnectionManager
+from fastapi import HTTPException, status
 from app.models import Mapping
 from datetime import datetime
 
@@ -16,15 +17,18 @@ class MappingPersistenceManager():
         self.dbcm.release(self.connection)
         
     def search_url(self, url: HttpUrl) -> Mapping|None:
-        cursor = self.connection.driver.cursor()
-        cursor.execute(""" 
-                SELECT url, mapkey FROM url_shortener.mapping
-                WHERE url = %s;
-            """,
-            (url,)
-        )
-        result = cursor.fetchone()
-        cursor.close()
+        try:
+            cursor = self.connection.driver.cursor()
+            cursor.execute(""" 
+                    SELECT url, mapkey FROM url_shortener.mapping
+                    WHERE url = %s;
+                """,
+                (url,)
+            )
+            result = cursor.fetchone()
+            cursor.close()
+        except:
+            raise HTTPException(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if result:
             return Mapping(url=result[0], mapkey=result[1])
@@ -32,17 +36,20 @@ class MappingPersistenceManager():
             return None
 
     def search_mapkey(self, mapkey: str) -> Mapping|None:
-        cursor = self.connection.driver.cursor()
-        cursor.execute(
-            """
-                SELECT url, mapkey FROM url_shortener.mapping
-                WHERE mapkey = %s;
-            """,
-            (mapkey,)
-        )
-        result = cursor.fetchone()
-        cursor.close()
-
+        try:
+            cursor = self.connection.driver.cursor()
+            cursor.execute(
+                """
+                    SELECT url, mapkey FROM url_shortener.mapping
+                    WHERE mapkey = %s;
+                """,
+                (mapkey,)
+            )
+            result = cursor.fetchone()
+            cursor.close()
+        except:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         if result:
             return Mapping(url=result[0], mapkey=result[1])
         else:
@@ -51,15 +58,18 @@ class MappingPersistenceManager():
 
     def commit_mapping(self, mapping: Mapping) -> None:
         """ Commit a mapping to the database."""
-        cursor = self.connection.driver.cursor()
-        cursor.execute(
-            """
-                INSERT INTO url_shortener.mapping (url, mapkey)
-                VALUES (%s, %s);
-            """,
-            (mapping.url, mapping.mapkey)
-        )
-        cursor.close()
+        try:
+            cursor = self.connection.driver.cursor()
+            cursor.execute(
+                """
+                    INSERT INTO url_shortener.mapping (url, mapkey)
+                    VALUES (%s, %s);
+                """,
+                (mapping.url, mapping.mapkey)
+            )
+            cursor.close()
+        except:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 

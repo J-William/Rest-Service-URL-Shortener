@@ -3,6 +3,7 @@ import psycopg2 # type: ignore
 import time
 from dataclasses import dataclass
 from typing import Any
+from app.exceptions import DatabaseUnavailable, ConnectionTimeout
 
 
 @dataclass
@@ -22,6 +23,8 @@ class DatabaseConnectionManager():
     def __init__(self, db_config: dict) -> None:
         self.config = db_config
         self.pool = self.setup_pool()
+        self.acquire_wait_time = 0.1
+        self.acquire_wait_timeout = 2
 
     def teardown(self) -> None:
         for conn in self.pool:
@@ -30,13 +33,17 @@ class DatabaseConnectionManager():
 
     def get_driver(self) -> Any:
         """ Get a psycopg2 connection to the database."""
-        driver = psycopg2.connect(
-                dbname = self.config['dbname'],
-                user = self.config['user'],
-                password = self.config['password'],
-                port = self.config['port'],
-                host = self.config['host']
-            )
+        try:
+            driver = psycopg2.connect(
+                    dbname = self.config['dbname'],
+                    user = self.config['user'],
+                    password = self.config['password'],
+                    port = self.config['port'],
+                    host = self.config['host']
+                )
+        except:
+            raise DatabaseUnavailable('Failed to creation connection.')
+
         # Autocommit DML 
         driver.set_session(autocommit=True)
         return driver       
@@ -77,15 +84,15 @@ class DatabaseConnectionManager():
         else:
             waited = float()
             while(True):
-                time.sleep(.01)
+                time.sleep(self.acquire_wait_time)
                 waited += .01
                 for con in self.pool:
                     if not con.used:
                         con.used = True
                         return con
 
-                if waited > 3:
-                    return None
+                if waited > self.acquire_wait_timeout:
+                    raise ConnectionTimeout('Timed out waiting for a DB connection.')
 
 
     def release(self, conn: Connection) -> None:
