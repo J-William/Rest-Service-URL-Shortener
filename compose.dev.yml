@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
- web:
+ url-shortener:
   build:
    context: .
   ports:
@@ -21,4 +21,6 @@ services:
   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
   - POSTGRES_DB=${POSTGRES_DB}
   restart: always
+  volumes:
+    - ./schema/schema.sql:/docker-entrypoint-initdb.d/schema.sql
   
