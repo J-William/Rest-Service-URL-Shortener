@@ -10,6 +10,7 @@ import json
 
 app = FastAPI()
 
+# Load config
 with open('config/config.json') as f:
     config = json.loads(f.read())
 
@@ -22,6 +23,7 @@ cache = CacheManager(cache_size=config['cache_size'])
 
 @app.get('/')
 async def gethome() -> Any:
+    """ Test the service """
     return {"msg": "Url Shortener v1.0"}
 
 

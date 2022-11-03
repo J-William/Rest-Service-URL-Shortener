@@ -14,22 +14,26 @@ class Connection:
 
 
 class DatabaseConnectionManager():
+    """ Singleton connection manager to administer the pool of db connections"""
+    
     def __new__(cls, db_config: dict):
-        """ Return a reference to the singleton class instance."""
         if not hasattr(cls, 'instance'):
             cls.instance = super(DatabaseConnectionManager, cls).__new__(cls)
         return cls.instance
 
+
     def __init__(self, db_config: dict) -> None:
         self.config = db_config
         self.pool = self.setup_pool()
-        self.acquire_wait_time = 0.1
-        self.acquire_wait_timeout = 2
+        self.acquire_wait_time = self.config['acquire_wait_time']
+        self.acquire_wait_timeout = self.config['acquire_wait_timeout']
+
 
     def teardown(self) -> None:
         for conn in self.pool:
             conn.driver.close()
             del conn
+            
 
     def get_driver(self) -> Any:
         """ Get a psycopg2 connection to the database."""
@@ -50,7 +54,6 @@ class DatabaseConnectionManager():
         
 
     def create_connection(self, used: bool = False) -> Connection:
-        """ Connection creation method."""
         return Connection(
             con_id = uuid.uuid4().hex,
             driver = self.get_driver(),
@@ -68,7 +71,7 @@ class DatabaseConnectionManager():
         return pool
 
 
-    def acquire(self) -> Connection|None:
+    def acquire(self) -> Connection:
         """ Acquire an unused connection."""
         # Return a connection from the pool if available
         for con in self.pool:
@@ -82,6 +85,7 @@ class DatabaseConnectionManager():
             self.pool.append(new_con)
             return new_con
         else:
+            # Else wait a little while and try again
             waited = float()
             while(True):
                 time.sleep(self.acquire_wait_time)

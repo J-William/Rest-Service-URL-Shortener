@@ -13,43 +13,42 @@ class MappingPersistenceManager():
         self.dbcm = dbcm
         self.connection = self.dbcm.acquire()
 
+
     def teardown(self):
         self.dbcm.release(self.connection)
-        
+
+
     def search_url(self, url: HttpUrl) -> Mapping|None:
-        try:
-            cursor = self.connection.driver.cursor()
-            cursor.execute(""" 
-                    SELECT url, mapkey FROM url_shortener.mapping
-                    WHERE url = %s;
-                """,
-                (url,)
-            )
-            result = cursor.fetchone()
-            cursor.close()
-        except:
-            raise HTTPException(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        """ Search for a url and retrieve the mapping if exists"""
+        cursor = self.connection.driver.cursor()
+        cursor.execute(""" 
+                SELECT url, mapkey FROM url_shortener.mapping
+                WHERE url = %s;
+            """,
+            (url,)
+        )
+        result = cursor.fetchone()
+        cursor.close()
 
         if result:
             return Mapping(url=result[0], mapkey=result[1])
         else:
             return None
 
+
     def search_mapkey(self, mapkey: str) -> Mapping|None:
-        try:
-            cursor = self.connection.driver.cursor()
-            cursor.execute(
-                """
-                    SELECT url, mapkey FROM url_shortener.mapping
-                    WHERE mapkey = %s;
-                """,
-                (mapkey,)
-            )
-            result = cursor.fetchone()
-            cursor.close()
-        except:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+        """ Search for a mapkey and retrieve the mapping if exists"""
+        cursor = self.connection.driver.cursor()
+        cursor.execute(
+            """
+                SELECT url, mapkey FROM url_shortener.mapping
+                WHERE mapkey = %s;
+            """,
+            (mapkey,)
+        )
+        result = cursor.fetchone()
+        cursor.close()
+                
         if result:
             return Mapping(url=result[0], mapkey=result[1])
         else:
@@ -57,35 +56,35 @@ class MappingPersistenceManager():
         
 
     def commit_mapping(self, mapping: Mapping) -> None:
-        """ Commit a mapping to the database."""
-        try:
-            cursor = self.connection.driver.cursor()
-            cursor.execute(
-                """
-                    INSERT INTO url_shortener.mapping (url, mapkey)
-                    VALUES (%s, %s);
-                """,
-                (mapping.url, mapping.mapkey)
-            )
-            cursor.close()
-        except:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
+        """ Commit a mapping to the database."""      
+        cursor = self.connection.driver.cursor()
+        cursor.execute(
+            """
+                INSERT INTO url_shortener.mapping (url, mapkey)
+                VALUES (%s, %s);
+            """,
+            (mapping.url, mapping.mapkey)
+        )
+        cursor.close()
+     
 
 class CacheManager:
+    """ Singleton cache manager"""
+
     def __new__(cls, cache_size: int) -> Any:
-        """ Return a reference to the singleton class instance."""
         if not hasattr(cls, 'instance'):
             cls.instance = super(CacheManager, cls).__new__(cls)
         return cls.instance
+
 
     def __init__(self, cache_size: int) -> None:
         # Dict of Entry objects keyed by mapkey
         self.cache: dict[str, CacheManager.Entry] = dict()
         self.size = cache_size
     
+    
     class Entry:
+        """ Represents an entry in the cache"""
         def __init__(self, stamp: datetime, mapping: Mapping) -> None:
             self.stamp = stamp
             self.mapping = mapping

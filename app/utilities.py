@@ -5,6 +5,7 @@ import uuid
 ALPHABET = string.digits + string.ascii_letters
 base = len(ALPHABET)
 
+
 def base62encode(num: int) -> str:
     """ Base 62 Encode a number."""
     if num == 0:
