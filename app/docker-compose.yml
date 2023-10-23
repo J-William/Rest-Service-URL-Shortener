@@ -16,8 +16,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: app/Dockerfile.dev
     ports:
       - "8080:8080"
     depends_on:
