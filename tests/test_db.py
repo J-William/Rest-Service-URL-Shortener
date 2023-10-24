@@ -1,6 +1,4 @@
 from pymongo.mongo_client import MongoClient
-from pydantic import HttpUrl
-
 from app.persistence import save_db_mapping, search_db_by_shortcut, search_db_by_url
 
 MONGO_HOST = 'mongodb'
@@ -18,7 +16,7 @@ m_db = m_client['mapping-database']
 m_col = m_db['mapping-collection']
 
 
-class TestDbPersistence:
+class TestDb:
     test_shortcut = None
     test_url = None
 
@@ -33,14 +31,17 @@ class TestDbPersistence:
         del cls.test_shortcut
 
     def test_new_save(self):
-        save_db_mapping(url=HttpUrl(TestDbPersistence.test_url), shortcut='abc123')
+        save_db_mapping(
+            url=TestDb.test_url,
+            shortcut=TestDb.test_shortcut
+        )
 
     def test_search_by_shortcut(self):
-        res = search_db_by_shortcut(shortcut=TestDbPersistence.test_shortcut)
+        res = search_db_by_shortcut(shortcut=TestDb.test_shortcut)
 
-        assert res['_id'] == TestDbPersistence.test_shortcut
+        assert res['_id'] == TestDb.test_shortcut
 
     def test_search_by_url(self):
-        res = search_db_by_url(url=HttpUrl(TestDbPersistence.test_url))
+        res = search_db_by_url(url=TestDb.test_url)
 
-        assert res['url'] == TestDbPersistence.test_url
+        assert res['url'] == TestDb.test_url

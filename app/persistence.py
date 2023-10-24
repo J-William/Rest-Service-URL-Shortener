@@ -1,5 +1,4 @@
 from pymongo.mongo_client import MongoClient
-from pydantic import HttpUrl
 import redis
 
 MONGO_HOST = 'mongodb'
@@ -22,9 +21,9 @@ m_col = m_db['mapping-collection']
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 
-def search_db_by_url(url: HttpUrl) -> dict | None:
+def search_db_by_url(url: str) -> dict | None:
     """ Search the db for a corresponding shortcut string given a url."""
-    return m_col.find_one({'url': str(url)})
+    return m_col.find_one({'url': url})
 
 
 def search_db_by_shortcut(shortcut: str) -> dict | None:
@@ -32,22 +31,37 @@ def search_db_by_shortcut(shortcut: str) -> dict | None:
     return m_col.find_one({'_id': shortcut})
 
 
-def search_cache_by_url(url: HttpUrl):
+def search_cache_by_url(url: str) -> dict | None:
     """ Search the cache db for a corresponding shortcut string given a url."""
-    pass
+    res = r.hget('mapping-url', url)
+    if res:
+        return {
+            '_id': res.decode('utf-8'),
+            'url': url
+        }
+    else:
+        return None
 
 
 def search_cache_by_shortcut(shortcut: str):
     """ Search the cache for a corresponding yrl given a shortcut string."""
-    pass
+    res = r.hget('mapping-shortcut', shortcut)
+    if res:
+        return {
+            '_id': shortcut,
+            'url': res.decode('utf-8')
+        }
+    else:
+        return None
 
 
-def save_db_mapping(url: HttpUrl, shortcut: str) -> None:
+def save_db_mapping(url: str, shortcut: str) -> None:
     """ Save a mapping to the database."""
-    mapping = {'_id': shortcut, 'url': str(url)}
+    mapping = {'_id': shortcut, 'url': url}
     m_col.insert_one(mapping)
 
 
-def save_cache_mapping(url: HttpUrl, shortcut: str):
+def save_cache_mapping(url: str, shortcut: str) -> None:
     """ Save a mapping to the cache."""
-    pass
+    r.hset('mapping-url', url, shortcut)
+    r.hset('mapping-shortcut', shortcut, url)
