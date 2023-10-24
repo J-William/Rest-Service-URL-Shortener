@@ -1,23 +1,20 @@
 from typing import Any
 from fastapi import FastAPI, Response, HTTPException, status
-from fastapi.responses import RedirectResponse
-from app.models import MappingRequest, Mapping
-from app.utilities import generate_mapkey
-import json
-
+# from fastapi.responses import RedirectResponse
+# from app.models import MappingRequest, Mapping
+# from app.utilities import generate_shortcut
+# import json
 
 app = FastAPI()
+
 
 # Load config
 
 
-
-#
-#
-# @app.get('/')
-# async def service_status(response: Response) -> Any:
-#     """ Test the service """
-#     return {"msg": "Url Shortener v1.0 Service Available"}
+@app.get('/')
+async def service_status(response: Response) -> Any:
+    """ Test the service """
+    return {"msg": "Url Shortener v1.7 Service Available"}
 #
 #
 # @app.post('/api/v1/shorten', status_code=status.HTTP_201_CREATED)

@@ -36,3 +36,9 @@ class TestCache:
         res = search_cache_by_url(TestCache.test_url)
 
         assert res['url'] == TestCache.test_url
+
+    def test_save_duplicate(self):
+        save_cache_mapping(
+            url=TestCache.test_url,
+            shortcut=TestCache.test_shortcut
+        )
