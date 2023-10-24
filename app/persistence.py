@@ -1,13 +1,14 @@
 from pymongo.mongo_client import MongoClient
 import redis
+import os
 
-MONGO_HOST = 'mongodb'
-MONGO_PORT = 27017
-MONGO_USERNAME = 'root'
-MONGO_PASSWORD = 'examplePassword'
+MONGO_HOST = os.environ.get('MONGO_HOST')
+MONGO_PORT = int(os.environ.get('MONGO_PORT'))
+MONGO_USERNAME = os.environ.get('MONGO_USERNAME')
+MONGO_PASSWORD = os.environ.get('MONGO_PASSWORD')
 
-REDIS_HOST = 'redis'
-REDIS_PORT = 6379
+REDIS_HOST = os.environ.get('REDIS_HOST')
+REDIS_PORT = int(os.environ.get('REDIS_PORT'))
 
 m_client = MongoClient(
     host=MONGO_HOST,

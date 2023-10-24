@@ -5,9 +5,11 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
+    env_file:
+      - .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: examplePassword
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
 
   redis:
     image: redis:latest
@@ -16,8 +18,10 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: app/Dockerfile.dev
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     depends_on:

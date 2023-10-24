@@ -1,8 +1,9 @@
 import redis
+import os
 from app.persistence import save_cache_mapping, search_cache_by_url, search_cache_by_shortcut
 
-REDIS_HOST = 'redis'
-REDIS_PORT = 6379
+REDIS_HOST = os.environ.get('REDIS_HOST')
+REDIS_PORT = int(os.environ.get('REDIS_PORT'))
 
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 

@@ -1,10 +1,11 @@
 from pymongo.mongo_client import MongoClient
 from app.persistence import save_db_mapping, search_db_by_shortcut, search_db_by_url
+import os
 
-MONGO_HOST = 'mongodb'
-MONGO_PORT = 27017
-MONGO_USERNAME = 'root'
-MONGO_PASSWORD = 'examplePassword'
+MONGO_HOST = os.environ.get('MONGO_HOST')
+MONGO_PORT = int(os.environ.get('MONGO_PORT'))
+MONGO_USERNAME = os.environ.get('MONGO_USERNAME')
+MONGO_PASSWORD = os.environ.get('MONGO_PASSWORD')
 
 m_client = MongoClient(
     host=MONGO_HOST,
