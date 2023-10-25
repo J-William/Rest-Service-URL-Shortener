@@ -8,7 +8,7 @@ from app.persistence import (
 
 
 class MappingRequest(BaseModel):
-    """ FastAPI request model"""
+    """ FastAPI request model for URL validation."""
     url: HttpUrl
 
 

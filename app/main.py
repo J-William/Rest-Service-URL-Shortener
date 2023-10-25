@@ -2,11 +2,9 @@ from typing import Any
 from fastapi import FastAPI, Response, HTTPException, status
 from fastapi.responses import RedirectResponse
 from app.models import MappingRequest, Mapping
+from pymongo.errors import DuplicateKeyError
 
 app = FastAPI()
-
-
-# Load config
 
 
 @app.get('/')
@@ -15,26 +13,20 @@ async def service_status(response: Response) -> Any:
     return {"msg": "Url Shortener v1.7 Service Available"}
 
 
-@app.post('/api/v1/shorten', status_code=status.HTTP_201_CREATED)
-async def shorten_url(mapreq: MappingRequest) -> Any:
+@app.post('/api/v1/shorten')
+async def shorten_url(mapreq: MappingRequest, response: Response) -> Any:
     """Request a shortened url mapping"""
 
-    existing_mapping = Mapping.find(url=str(mapreq.url))
+    new_mapping = Mapping(url=str(mapreq.url))
 
-    if existing_mapping:
-        # Return failure resource already exists
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mapping already exists."
-        )
-    else:
-        # Create a new mapping
-        new_mapping = Mapping(url=str(mapreq.url))
-
-        # Persist the new mapping
+    try:
         new_mapping.save()
+    except DuplicateKeyError:   # If the Mapping already exists just return it
+        existing_mapping = Mapping.find(url=str(mapreq.url))
+        return {"message": "Already exists", "shortcut": existing_mapping.shortcut}
 
-        return {"message": "Success", "shortcut": new_mapping.shortcut}
+    response.status_code = status.HTTP_201_CREATED
+    return {"message": "Success", "shortcut": new_mapping.shortcut}
 
 
 @app.get('/api/v1/{shortcut}')
@@ -42,8 +34,9 @@ async def get_redirect(shortcut: str) -> Any:
     """Redirect to a mapped url"""
     mapping = Mapping.find(shortcut=shortcut)
 
-    if not mapping:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="URL not found")
-    else:
-        # Client network error during testing redirects; probably CORS issue
+    if mapping:
         return RedirectResponse(mapping.url, status_code=status.HTTP_308_PERMANENT_REDIRECT)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="URL not found")
+
+

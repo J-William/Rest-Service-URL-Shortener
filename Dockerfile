@@ -8,4 +8,4 @@ RUN pip3 install --no-cache-dir --upgrade -r /app/requirements.txt
 
 COPY . .
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -10,26 +10,28 @@ MONGO_PASSWORD = os.environ.get('MONGO_PASSWORD')
 REDIS_HOST = os.environ.get('REDIS_HOST')
 REDIS_PORT = int(os.environ.get('REDIS_PORT'))
 
+# Set up the mapping collection cursor
 m_client = MongoClient(
     host=MONGO_HOST,
     port=MONGO_PORT,
     username=MONGO_USERNAME,
     password=MONGO_PASSWORD
 )
-m_db = m_client['mapping-database']
-m_col = m_db['mapping-collection']
+mongo_db = m_client['mapping-database']
+mongo_coll = mongo_db['mapping-collection']
 
+# Redis client
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
 
 
 def search_db_by_url(url: str) -> dict | None:
     """ Search the db for a corresponding shortcut string given a url."""
-    return m_col.find_one({'url': url})
+    return mongo_coll.find_one({'url': url})
 
 
 def search_db_by_shortcut(shortcut: str) -> dict | None:
     """ Search the db for a corresponding url given a shortcut string."""
-    return m_col.find_one({'_id': shortcut})
+    return mongo_coll.find_one({'_id': shortcut})
 
 
 def search_cache_by_url(url: str) -> dict | None:
@@ -44,7 +46,7 @@ def search_cache_by_url(url: str) -> dict | None:
         return None
 
 
-def search_cache_by_shortcut(shortcut: str):
+def search_cache_by_shortcut(shortcut: str) -> dict | None:
     """ Search the cache for a corresponding yrl given a shortcut string."""
     res = r.hget('mapping-shortcut', shortcut)
     if res:
@@ -59,7 +61,7 @@ def search_cache_by_shortcut(shortcut: str):
 def save_db_mapping(url: str, shortcut: str) -> None:
     """ Save a mapping to the database."""
     mapping = {'_id': shortcut, 'url': url}
-    m_col.insert_one(mapping)
+    mongo_coll.insert_one(mapping)
 
 
 def save_cache_mapping(url: str, shortcut: str) -> None:
