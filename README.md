@@ -9,3 +9,5 @@ Built with:
 - Redis
 - Docker 
 - Docker Compose
+
+*previous version used Postgres and internal caching mechanism
